@@ -1,0 +1,276 @@
+```
+PROJECT CONTEXT — INR/USD Volatility Forecasting
+Paste this at the start of any new chat to continue from Step 4.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Abhishek, economics undergrad (IISER Bhopal, DS minor).
+Strong DL/transformer background — built decoder-only GPT from scratch (custom BPE tokenizer, training loop, inference), XGBoost credit risk model, ARIMA with RBI data.
+Hardware: RTX 4060 (8GB VRAM), Windows, VS Code Jupyter, conda env = myenv, Python 3.13.
+Preferences: concise ready-to-paste code, no long explanations, no PDF/HTML outputs, separate .py files per model.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROJECT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Course: Money, Banking & Financial Markets.
+Title: Forecasting INR/USD Realized Volatility — GARCH family vs HAR-RV vs RF/XGBoost vs LSTM vs Temporal Fusion Transformer (TFT).
+Core claim: does ML beat HAR-RV out-of-sample; which economic channels drive it (SHAP for XGBoost, TFT variable-selection weights + temporal attention).
+Type: predictive question, not causal. Null result (HAR-RV wins) is publishable.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FILE STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+D:\MBFM_project\
+├── mbfm dataset\                  ← all raw CSVs
+├── master_features.csv            ← cleaned feature matrix (5199 rows, 24 cols)
+├── figures\                       ← paper figures (fig1–fig5 done)
+├── results\
+│   └── forecasts\                 ← .npy forecast arrays per model
+├── models\
+│   ├── 01_garch11.py
+│   ├── 02_egarch.py
+│   ├── 03_gjr_garch.py
+│   ├── 04_har_rv.py
+│   ├── 05_har_rv_x.py
+│   ├── 06_random_forest.py        ← NOT YET WRITTEN
+│   ├── 07_xgboost.py              ← NOT YET WRITTEN
+│   ├── 08_lstm.py                 ← NOT YET WRITTEN
+│   └── 09_tft.py                  ← NOT YET WRITTEN
+└── preprocessing\
+    └── data.ipynb
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MASTER FEATURES (master_features.csv)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Shape: (5199, 24)
+Date range: 2005-04-04 to 2026-10-12
+Zero nulls after dropna.
+Index: date (trading days, RBI USD/INR calendar)
+
+Columns:
+  rv              ← TARGET: 22-day rolling std of log USD/INR returns × √252 (annualised)
+  rv_lag1         ← lagged 1 day (HAR daily component)
+  rv_5d           ← 5-day avg of rv ending t-1 (HAR weekly component)
+  rv_22d          ← 22-day avg of rv ending t-1 (HAR monthly component)
+  sq_return       ← (log_return_{t-1})^2
+  vix_level       ← VIX_{t-1}
+  vix_chg         ← VIX_{t-1} - VIX_{t-2}
+  brent_ret       ← log(Brent_{t-1}/Brent_{t-2})
+  dxy_level       ← DXY_{t-1}
+  dxy_ret         ← log(DXY_{t-1}/DXY_{t-2})
+  india10y        ← India 10Y yield_{t-1}
+  india10y_chg    ← India 10Y_{t-1} - India 10Y_{t-2}
+  us10y           ← US 10Y yield_{t-1}
+  us10y_chg       ← US 10Y_{t-1} - US 10Y_{t-2}
+  rate_spread     ← (india10y - us10y)_{t-1}
+  callmoney       ← weighted avg call money rate_{t-1}
+  nifty_ret       ← log(Nifty_{t-1}/Nifty_{t-2})
+  em_ret          ← log(EEM_{t-1}/EEM_{t-2})
+  ret_t           ← log return at t (GARCH input only, NOT an ML feature)
+  is_mpc_day      ← 1 if today is RBI MPC announcement day (known in advance)
+  is_fomc_day     ← 1 if today is FOMC statement day shifted to next Indian trading day
+  day_of_week     ← 0–4
+  month           ← 1–12
+  week_of_year    ← 1–53
+
+Key data facts:
+  rv range        : 0.004 – 0.281
+  callmoney range : 0.13 – 54.32 (real historical spikes, not errors)
+  75th pct RV     : 0.070  ← high-vol regime threshold
+  is_mpc_day sum  : 60
+  is_fomc_day sum : 175
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DESIGN DECISIONS (locked in)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Target        : rv (annualised 22-day RV)
+Forecast type : 1-step-ahead
+No look-ahead : all features lagged ≥1 day except is_mpc_day/is_fomc_day (known future)
+Train split   : first 1,500 rows
+Walk-forward  : expanding window, refit every 252 days
+OOS period    : rows 1500–5198 (~3,699 rows, 2011 to Oct 2026)
+Primary metric: QLIKE = mean(rv/forecast - log(rv/forecast) - 1)
+Other metrics : RMSE, MAE
+Stat test     : Diebold-Mariano (QLIKE loss) vs HAR-RV and vs GARCH(1,1)
+Regime split  : OOS RV > 0.070 = high-vol; else low-vol
+Robustness    : (1) exclude COVID 2020-01..09, (2) 5-day RV target,
+                (3) market-only features (no macro rates),
+                (4) 5-day-ahead horizon
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EDA FINDINGS (Step 2 — DONE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ACF of rv stays ~0.5 at lag 60 → strong long memory → justifies HAR-RV and long TFT lookback
+vix_level most consistently positively correlated with rv (rolling corr up to 0.8)
+dxy_level negatively correlated with rv lags (~-0.45) → stronger USD = calmer INR
+rate_spread highly time-varying, switches sign → nonlinear relationships justify ML
+rv_lag1/rv_5d/rv_22d highly correlated (0.91–0.99) → HAR structure confirmed
+rv is right-skewed, fat-tailed → regime split meaningful
+Figures saved: fig1_rv_series, fig2_rv_acf, fig3_corr_heatmap, fig4_rolling_corr, fig5_rv_regimes
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODEL SPECS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BASELINES (Step 3 — code written, may or may not be run yet):
+  GARCH(1,1)   : arch_model(ret*100, vol="Garch", p=1, q=1)
+  EGARCH(1,1)  : arch_model(ret*100, vol="EGARCH", p=1, q=1)
+  GJR-GARCH    : arch_model(ret*100, vol="Garch", p=1, o=1, q=1)
+  HAR-RV       : OLS(rv ~ rv_lag1 + rv_5d + rv_22d), clip forecasts to 1e-8
+  HAR-RV-X     : OLS(rv ~ rv_lag1 + rv_5d + rv_22d + vix_level), clip to 1e-8
+  All GARCH: variance in (pct return)^2 → convert: sqrt(var/10000) * sqrt(252)
+  All: walk-forward expanding window, refit every 252 days
+
+ML MODELS (Steps 4–6 — NOT YET WRITTEN):
+  ML feature columns (19):
+    rv_lag1, rv_5d, rv_22d, sq_return,
+    vix_level, vix_chg, brent_ret,
+    dxy_level, dxy_ret,
+    india10y, india10y_chg,
+    us10y, us10y_chg, rate_spread,
+    callmoney, nifty_ret, em_ret,
+    is_mpc_day, is_fomc_day
+  Calendar features (3, known-future, used by TFT only):
+    day_of_week, month, week_of_year
+
+  Random Forest (06_random_forest.py):
+    n_estimators=200, max_features="sqrt", min_samples_leaf=5
+    Walk-forward, refit every 252 days
+    Save: results/forecasts/random_forest.npy
+
+  XGBoost (07_xgboost.py):
+    n_estimators=300, max_depth=4, learning_rate=0.05,
+    subsample=0.8, colsample_bytree=0.8, min_child_weight=5
+    Walk-forward, refit every 252 days
+    SHAP: TreeExplainer on full OOS, mean |SHAP| bar, VIX SHAP time series,
+          VIX dependence plot, SHAP split by high/low vol regime
+    Save: results/forecasts/xgboost.npy
+          results/shap/shap_values.npy
+          results/shap/shap_feature_names.npy
+
+  LSTM (08_lstm.py):
+    2 layers × 64 hidden units, dropout=0.2, sequence length=30
+    StandardScaler fit on train only, applied to OOS
+    Adam, MSE loss, 50 epochs, batch=32, early stop patience=10 on last 252 rows of train
+    Walk-forward: refit every 252 OOS days (not every step)
+    GPU: RTX 4060 via PyTorch or Keras
+    Save: results/forecasts/lstm.npy
+
+  TFT (09_tft.py):
+    Library: pytorch_forecasting
+    hidden_size=64, attention_head_size=1, dropout=0.3,
+    hidden_continuous_size=32, loss=QuantileLoss([0.1, 0.5, 0.9]),
+    learning_rate=0.01, batch_size=64, gradient_clip_val=0.01,
+    max_encoder_length=63, max_prediction_length=1,
+    early stopping patience=10
+    Static input     : entity_id (constant 0, categorical)
+    Known future     : is_mpc_day, is_fomc_day, day_of_week, month, week_of_year
+    Observed past    : all 19 ML features listed above (include rv_lag1/5d/22d as past rv)
+    Target           : rv
+    Point forecast   : 50th percentile output
+    Interpretation   : variable selection weights (built-in), temporal attention heatmap,
+                       regime dist(t) via Bhattacharyya distance (paper eq. 28-30)
+    Save: results/forecasts/tft.npy
+          results/tft/variable_weights.npy
+          results/tft/attention_weights.npy
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EVALUATION (Step 7 — NOT YET DONE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+All models evaluated over same OOS rows (1500 to end).
+Metrics per model: RMSE, MAE, QLIKE
+Diebold-Mariano: each model vs HAR-RV (primary) and vs GARCH(1,1)
+  DM stat: d_t = QLIKE_model_t - QLIKE_harv_t
+  Test: d_bar / sqrt(var(d)) ~ N(0,1), one-sided (is model better than HAR-RV?)
+Regime split: compute metrics separately for high-vol (rv > 0.070) and low-vol OOS days
+Mincer-Zarnowitz: OLS(rv_actual ~ forecast), test H0: intercept=0, slope=1 (F-test)
+
+Tables to produce:
+  Table 1: descriptive statistics (rv, all features, mean/std/skew/kurt/min/max)
+  Table 2: GARCH parameter estimates (ω, α, β, γ) + log-likelihood
+  Table 3: HAR-RV and HAR-RV-X OLS estimates (coef, t-stat, p-val, R²)
+  Table 4: main OOS accuracy (all 9 models × RMSE/MAE/QLIKE + DM p-value vs HAR-RV)
+  Table 5: regime-split accuracy (high-vol vs low-vol RMSE and QLIKE)
+  Table 6: Mincer-Zarnowitz (intercept, slope, F p-value for all models)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INTERPRETATION (Step 8 — NOT YET DONE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SHAP (XGBoost):
+  Fig: mean |SHAP| bar chart (all 19 features ranked)
+  Fig: VIX SHAP time series overlaid with rv (does VIX SHAP spike in crises?)
+  Fig: VIX dependence plot (scatter vix_level vs SHAP(vix), colour by rv regime)
+  Fig: SHAP regime comparison (high-vol vs low-vol mean |SHAP| side by side)
+
+TFT:
+  Fig: variable selection weights bar (compare with XGBoost SHAP ranking)
+  Fig: mean temporal attention vs lag (0 to -62 days), 10/50/90 pct bands
+  Fig: regime dist(t) time series overlaid with rv (Bhattacharyya, eq. 28-30 of TFT paper)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ROBUSTNESS (Step 9 — NOT YET DONE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Run all 9 models again under each of:
+  R1: exclude COVID window (2020-01-01 to 2020-09-30) from OOS evaluation only
+  R2: replace rv target with 5-day rolling std × √252
+  R3: restrict ML features to market-only (drop india10y, us10y, rate_spread, callmoney)
+  R4: 5-day-ahead forecast (change horizon from 1 to 5)
+Report QLIKE for each robustness variant. Main conclusion should hold across all four.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PAPER STRUCTURE (Step 10 — NOT YET DONE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Target: 25–30 pages including tables and figures.
+Write order: Data → Methodology → Results → Discussion → Introduction → Conclusion → Abstract
+
+Sections:
+  1. Introduction (1.5 pp): motivation, research gap, contributions
+  2. Literature Review (1 pp): GARCH papers, Corsi 2009 HAR-RV, ML-vs-GARCH papers,
+     Liu et al. 2025 HAR-PD paper (uploaded), INR/USD volatility literature
+  3. Data (1 pp): sources, variables, Table 1, Fig1 (rv series), Fig2 (ACF)
+  4. Methodology (2 pp): GARCH family, HAR-RV, RF, XGBoost, LSTM, TFT architecture
+     summary, walk-forward design, QLIKE loss, DM test, SHAP, TFT attention
+  5. Results (2 pp): Table 4, Table 5, Fig6 (forecast comparison 2018–2022 window)
+  6. Economic Interpretation (1.5 pp): SHAP figures, TFT attention + variable weights,
+     regime dist(t), answer "which channels drive INR volatility"
+  7. Robustness (0.5 pp): brief table of QLIKE across R1–R4
+  8. Conclusion (0.5 pp)
+
+Key references already identified:
+  Corsi (2009) — HAR-RV model
+  Liu, Fu & Hong (2025, arXiv 2503.00851) — HAR-PD paper (uploaded)
+  Lim et al. (2021) — TFT paper (uploaded)
+  Baker, Bloom & Davis (2016) — EPU index
+  Diebold & Mariano (1995) — forecast comparison test
+  Lundberg & Lee (2017) — SHAP
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPLETED STEPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Step 1 : master_features.csv built, verified (5199 rows, zero nulls, 2005–2026)
+✅ Step 2 : EDA complete — fig1 to fig5 saved in D:\MBFM_project\figures\
+✅ Step 3 : Baseline model code written (01–05 .py files), separate files per model
+            Reference paper for HAR-RV: Liu et al. 2025 (arXiv 2503.00851)
+            Note: HAR-CJ/RS/REQ variants from paper NOT implementable (need intraday data)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NEXT STEPS (start here in new chat)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Step 4 : 06_random_forest.py + 07_xgboost.py + SHAP outputs
+Step 5 : 08_lstm.py
+Step 6 : 09_tft.py (PyTorch Forecasting)
+Step 7 : Evaluation — all metrics, DM tests, regime split, MZ, Tables 4–6
+Step 8 : Interpretation figures — SHAP bar/time series/dependence,
+          TFT variable weights, TFT attention, regime dist(t)
+Step 9 : Robustness checks R1–R4
+Step 10: Paper write-up
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INSTRUCTIONS FOR CLAUDE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Give code ready to paste into separate .py files.
+No long explanations. No PDF or HTML outputs.
+Each model file must be self-contained: load master_features.csv, run walk-forward,
+save .npy forecast to results/forecasts/, print RMSE/MAE/QLIKE.
+Continue from Step 4 unless told otherwise.
+```

@@ -1,0 +1,9 @@
+
+results/forecasts/*.npy
+results/shap/*.npy
+__pycache__/
+*.pyc
+myenv/
+.env
+
+# keep figures and structure

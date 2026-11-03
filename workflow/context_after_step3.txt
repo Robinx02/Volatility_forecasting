@@ -1,0 +1,62 @@
+Here's the complete context block — paste this at the start of any new conversation:
+
+---
+
+**PROJECT CONTEXT (continue from Step 3)**
+
+**Who:** Abhishek, economics undergrad (IISER Bhopal, DS minor), strong DL/transformer background, RTX 4060, Windows + VS Code Jupyter (myenv, Python 3.13). Prefers concise, ready-to-paste code, minimal commentary. Course: Money, Banking & Financial Markets.
+
+**PROJECT:** INR/USD realized-volatility forecasting. GARCH-family vs HAR-RV vs RF/XGBoost vs LSTM vs Temporal Fusion Transformer (TFT, Lim et al. 2021). Key claims: does ML beat HAR-RV out-of-sample; which economic channels drive it (SHAP for XGBoost, TFT variable-selection weights + attention). Predictive question, not causal; null result (HAR-RV wins) is publishable. Timeline 8-10 weeks.
+
+**DESIGN**
+- Target: rv = 22-day rolling std of log USD/INR returns × √252 (annualised), known at close of t. 1-step-ahead forecast. All features lagged ≥1 day (no look-ahead).
+- Features (19 ML): rv_lag1, rv_5d, rv_22d, sq_return, vix_level, vix_chg, brent_ret, dxy_level, dxy_ret, india10y, india10y_chg, us10y, us10y_chg, rate_spread, callmoney, nifty_ret, em_ret + known-future: is_mpc_day, is_fomc_day, day_of_week, month, week_of_year. ret_t is for GARCH only.
+- Split: train = first 1,500 rows, expanding-window walk-forward, refit every 252 days, OOS to Oct 2026 (~3,700 rows). Never touch OOS in development.
+- Baselines: GARCH(1,1), EGARCH, GJR-GARCH (arch lib, on ret_t); HAR-RV (OLS on rv_lag1/rv_5d/rv_22d only).
+- ML: RF (200 trees, max_features sqrt, min_leaf 5); XGB (300, depth 4, lr .05, subsample .8, colsample .8, min_child_weight 5); LSTM (2×64, dropout .2, seq 30, StandardScaler fit on train only); TFT via PyTorch Forecasting (hidden 64, 1 head, dropout .3, hidden_continuous 32, QuantileLoss [.1,.5,.9], lr .01, batch 64, grad clip .01, lookback 63, horizon 1, early stop patience 10).
+- TFT inputs: static = entity_id (constant 0); known-future = is_mpc_day, is_fomc_day, day_of_week, month, week_of_year; observed-past = all 18 market features + rv lags.
+- Eval: RMSE, MAE, QLIKE (primary), Diebold-Mariano (QLIKE) vs HAR-RV and GARCH, regime split (OOS RV > 75th pct = high-vol, threshold = 0.070), Mincer-Zarnowitz. Robustness: 5-day RV target, exclude COVID (2020-01..09), market-only features, 5-day-ahead horizon.
+- Interpretation: SHAP bar + VIX SHAP time series + dependence plot; TFT variable-selection weights vs SHAP; TFT mean attention vs lag; regime distance dist(t) via Bhattacharyya vs RV.
+- Paper: 25-30 pp. Tables: descriptives, GARCH/HAR estimates, main accuracy, regime split, MZ. Figures: RV series w/ crises, ACF, forecast comparison, SHAP, VIX SHAP, TFT var weights, TFT attention, regime dist(t).
+
+**DATA & FILES**
+- Folder: `D:\MBFM_project\mbfm dataset\`
+- master_features.csv: `D:\MBFM_project\master_features.csv`
+- Shape: (5199, 24), date range: 2005-04-04 → 2026-10-12, zero nulls
+- Figures folder: `D:\MBFM_project\figures\`
+- Results folder (to be created): `D:\MBFM_project\results\forecasts\`
+- Notebook: `D:\MBFM_project\preprocessing\data.ipynb`
+
+**MASTER FEATURES COLUMNS (24):**
+rv, rv_lag1, rv_5d, rv_22d, sq_return, vix_level, vix_chg, brent_ret, dxy_level, dxy_ret, india10y, india10y_chg, us10y, us10y_chg, rate_spread, callmoney, nifty_ret, em_ret, ret_t, is_mpc_day, is_fomc_day, day_of_week, month, week_of_year
+
+**DATA FACTS**
+- callmoney range: 0.13–54.32 (real historical spikes, not errors)
+- rv range: 0.004–0.281 (annualised)
+- 75th pct RV threshold: 0.070 (high-vol regime split)
+- is_mpc_day sum: 60; is_fomc_day sum: 175
+
+**EDA FINDINGS (Step 2 — DONE)**
+- ACF stays ~0.5 at lag 60 → strong long memory → justifies HAR-RV and long LSTM/TFT lookback
+- vix_level most consistently positively correlated with RV (rolling corr up to 0.8)
+- dxy_level negatively correlated with RV lags (-0.45) → stronger USD = calmer INR
+- rate_spread highly time-varying, switches sign → nonlinear relationships justify ML
+- rv_lag1/rv_5d/rv_22d highly correlated (0.91–0.99) → HAR structure confirmed
+- RV right-skewed, fat-tailed → regime split meaningful
+- Figures saved: fig1_rv_series, fig2_rv_acf, fig3_corr_heatmap, fig4_rolling_corr, fig5_rv_regimes
+
+**COMPLETED STEPS**
+- ✅ Step 1: master_features.csv built and verified
+- ✅ Step 2: EDA complete, all figures paper-ready
+
+**NEXT STEPS (start here)**
+- Step 3: Baselines — GARCH(1,1), EGARCH, GJR-GARCH walk-forward + HAR-RV walk-forward; save OOS forecast arrays to `D:\MBFM_project\results\forecasts\`
+- Step 4: RF + XGBoost + SHAP
+- Step 5: LSTM
+- Step 6: TFT (PyTorch Forecasting)
+- Step 7: Evaluation — RMSE/MAE/QLIKE tables, DM tests, regime split, MZ
+- Step 8: Interpretation — SHAP figures, TFT attention + variable weights, regime dist(t)
+- Step 9: Robustness checks
+- Step 10: Paper write-up
+
+**INSTRUCTIONS FOR CLAUDE:** Give code ready to paste, no long explanations, no PDF/HTML outputs. Continue from Step 3.
