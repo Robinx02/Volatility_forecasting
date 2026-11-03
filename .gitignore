@@ -5,5 +5,5 @@ __pycache__/
 *.pyc
 myenv/
 .env
-
+workflow/
 # keep figures and structure
