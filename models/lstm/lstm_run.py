@@ -15,8 +15,6 @@ REFIT   = 252
 SEQ_LEN = 30
 DEVICE  = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 if DEVICE.type != "cuda":
     print("GPU not detected. Exiting.")
     exit()
