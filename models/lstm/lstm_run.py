@@ -22,15 +22,7 @@ if DEVICE.type != "cuda":
 print(f"GPU: {torch.cuda.get_device_name(0)}")
 print(f"VRAM: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
 
-FEATURES = [
-    "rv_lag1", "rv_5d", "rv_22d", "sq_return",
-    "vix_level", "vix_chg", "brent_ret",
-    "dxy_level", "dxy_ret",
-    "india10y", "india10y_chg",
-    "us10y", "us10y_chg", "rate_spread",
-    "callmoney", "nifty_ret", "em_ret",
-    "is_mpc_day", "is_fomc_day",
-]
+FEATURES = ["rv_lag1", "rv_5d", "rv_22d", "sq_return", "vix_level", "vix_chg", "brent_ret", "dxy_level", "dxy_ret", "india10y", "india10y_chg", "us10y", "us10y_chg", "rate_spread", "callmoney", "nifty_ret", "em_ret", "is_mpc_day", "is_fomc_day",]
 
 df    = pd.read_csv(DATA, index_col=0, parse_dates=True)
 X_all = df[FEATURES].values.astype(np.float32)
@@ -53,7 +45,7 @@ for i, t in enumerate(range(TRAIN, len(df))):
             continue
 
         print(f"refit  i={i:4d}  train_seqs={len(X_seq)}")
-        model = train(X_seq, y_seq, DEVICE)
+        model = train(X_seq, y_seq, device =DEVICE)
 
     if model is None:
         continue

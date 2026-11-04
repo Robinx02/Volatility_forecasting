@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
-
+from tqdm import tqdm
 from lstm_model import LSTMVolatilityModel
 
 HIDDEN   = 64
@@ -39,8 +39,13 @@ def train(X_seq, y_seq, device):
     best_wts  = None
     wait      = 0
 
-    for _ in range(EPOCHS):
+#this part is just for the progress bar observation interminal
+
+    pbar =tqdm(range(1, EPOCHS +1) , desc = "training" , leave=False)
+
+    for ep in pbar:
         model.train()
+        train_losses = []
         for xb, yb in tr_dl:
             xb, yb = xb.to(device), yb.to(device)
             opt.zero_grad()
@@ -48,6 +53,7 @@ def train(X_seq, y_seq, device):
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step()
+            train_losses.append(loss.item())
 
         model.eval()
         v = []
@@ -55,6 +61,17 @@ def train(X_seq, y_seq, device):
             for xb, yb in val_dl:
                 v.append(loss_fn(model(xb.to(device)), yb.to(device)).item())
         val_loss = np.mean(v)
+        train_loss = np.mean(train_losses)
+
+        #for memory usage during the training time
+        mem_used = torch.cuda.memory_allocated(device)/1e6
+        pbar.set_postfix({
+            "ep"    :ep,
+            "tr_loss" : f"{train_loss:.6f}",
+            "val_loss": f"{val_loss:.6f}",
+            "wait"    : wait,
+            "VRAM_MB" :f"{mem_used:.0f}",
+        })
 
         if val_loss < best_loss:
             best_loss = val_loss
@@ -63,6 +80,7 @@ def train(X_seq, y_seq, device):
         else:
             wait += 1
             if wait >= PATIENCE:
+                tqdm.write(f" early stop at epoch {ep} val_loss = {val_loss:.6f} ")
                 break
 
     model.load_state_dict(best_wts)
