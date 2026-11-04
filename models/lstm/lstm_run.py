@@ -15,6 +15,15 @@ REFIT   = 252
 SEQ_LEN = 30
 DEVICE  = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+if DEVICE.type != "cuda":
+    print("GPU not detected. Exiting.")
+    exit()
+
+print(f"GPU: {torch.cuda.get_device_name(0)}")
+print(f"VRAM: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
+
 FEATURES = [
     "rv_lag1", "rv_5d", "rv_22d", "sq_return",
     "vix_level", "vix_chg", "brent_ret",

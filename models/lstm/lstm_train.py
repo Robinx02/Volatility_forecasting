@@ -32,10 +32,8 @@ def train(X_seq, y_seq, device):
     X_tr, X_val = X_seq[:-val_size], X_seq[-val_size:]
     y_tr, y_val = y_seq[:-val_size], y_seq[-val_size:]
 
-    tr_dl  = DataLoader(TensorDataset(torch.from_numpy(X_tr), torch.from_numpy(y_tr)),
-                        batch_size=BATCH, shuffle=True)
-    val_dl = DataLoader(TensorDataset(torch.from_numpy(X_val), torch.from_numpy(y_val)),
-                        batch_size=BATCH, shuffle=False)
+    tr_dl  = DataLoader(TensorDataset(torch.from_numpy(X_tr), torch.from_numpy(y_tr)),batch_size=BATCH, shuffle=True)
+    val_dl = DataLoader(TensorDataset(torch.from_numpy(X_val), torch.from_numpy(y_val)),batch_size=BATCH, shuffle=False)
 
     best_loss = float("inf")
     best_wts  = None
