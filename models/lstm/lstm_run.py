@@ -31,6 +31,8 @@ X_all = df[FEATURES].values.astype(np.float32)
 y_all = df["rv"].values.astype(np.float32)
 OOS   = len(df) - TRAIN
 
+rv_floor = float(np.percentile(y_all[:TRAIN] ,1))
+print(f"rv_floor (1st pct train RV) : {rv_floor:.6f}")
 print(f"device={DEVICE}  features={len(FEATURES)}  OOS={OOS}")
 
 fcast  = np.full(OOS, np.nan)
@@ -59,6 +61,10 @@ for i, t in enumerate(range(TRAIN, len(df))):
     with torch.no_grad():
         fcast[i] = max(model(x_in).item(), 1e-8)
 
+#applying the floor to any reaming near-zero values so that it doesnt blow up QLIKE score againnnnn!!!!!!!!!!!!!
+
+fcast = np.maximum(fcast , rv_floor)
+
 out = os.path.join(FCAST, "lstm.npy")
 np.save(out, fcast)
 
@@ -85,7 +91,7 @@ axes[0].plot(oos_dates , fcast , color = "red" , lw= 0.7 , alpha = 0.8 , label =
 axes[0].set_title("LSTM OOS Forecast vs Actual")
 axes[0].set_ylabel("Annualised RV")
 axes[0].legend(fontsize = 8)
-axes[0].gird(alpha = 0.3)
+axes[0].grid(alpha = 0.3)
 
 axes[1].plot(oos_dates , np.abs(fcast-actual) , color = "steelblue" , lw = 0.6)
 axes[1].set_title("Absolute Forecast Error")
