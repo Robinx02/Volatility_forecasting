@@ -3,7 +3,9 @@ import numpy as np
 import pandas as pd
 import torch
 from sklearn.preprocessing import StandardScaler
-
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 from lstm_train import make_sequences, train
 
 DATA  = r"D:\MBFM_project\master_features.csv"
@@ -74,3 +76,23 @@ print(f"  RMSE   : {rmse:.6f}")
 print(f"  MAE    : {mae:.6f}")
 print(f"  QLIKE  : {qlike:.6f}")
 print(f"  saved  : {out}")
+
+fig , axes = plt.subplots(1,2 , figsize = (14,4))
+
+oos_dates = df.index[TRAIN:]
+axes[0].plot(oos_dates , actual , color = "black" , lw=0.8 , label = "actual rv")
+axes[0].plot(oos_dates , fcast , color = "red" , lw= 0.7 , alpha = 0.8 , label = "lstm forecast")
+axes[0].set_title("LSTM OOS Forecast vs Actual")
+axes[0].set_ylabel("Annualised RV")
+axes[0].legend(fontsize = 8)
+axes[0].gird(alpha = 0.3)
+
+axes[1].plot(oos_dates , np.abs(fcast-actual) , color = "steelblue" , lw = 0.6)
+axes[1].set_title("Absolute Forecast Error")
+axes[1].set_ylabel("|forecast - actual")
+axes[1].grid(alpha=0.3)
+
+plt.tight_layout()
+out_fig = r"D:\MBFM_project\figures\fig_lstm_forecast.png"
+plt.savefig(out_fig , dpi = 150)
+print(f"saved {out_fig}")
