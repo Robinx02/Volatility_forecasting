@@ -124,12 +124,13 @@ plt.close()
 print("saved fig_tft_forecast.png")
 
 # figure 2 is the mean temporal attention vs lag
-
-attn_arr = np.array(attn_store, dtype=np.float32)   # (OOS, ENC_LEN+1)
+attn_arr  = np.array(attn_store, dtype=np.float32)   # (OOS, T_total)
+T_attn    = attn_arr.shape[1]
 mean_attn = attn_arr.mean(axis=0)
 p10_attn  = np.percentile(attn_arr, 10, axis=0)
 p90_attn  = np.percentile(attn_arr, 90, axis=0)
-lags      = np.arange(-ENC_LEN, 1)                  # -63 to 0
+lags      = np.arange(-T_attn + 1, 1) 
+
 
 fig, ax = plt.subplots(figsize=(10, 4))
 ax.plot(lags, mean_attn, color="steelblue", lw=1.5, label="mean attention")

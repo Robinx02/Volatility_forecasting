@@ -5,10 +5,10 @@ from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 from tft_model import TFTModel
 
-EPOCHS   = 50
-BATCH    = 64
-LR       = 0.01
-PATIENCE = 10
+EPOCHS   = 60
+BATCH    = 32
+LR       = 3e-4
+PATIENCE = 15
 CLIP     = 1.0
 
 OBS_FEATURES = ["rv_lag1", "rv_5d", "rv_22d", "sq_return", "vix_level", "vix_chg", "brent_ret", "dxy_level", "dxy_ret", "india10y", "india10y_chg", "us10y", "us10y_chg", "rate_spread", "callmoney", "nifty_ret", "em_ret", "is_mpc_day", "is_fomc_day",]
@@ -44,8 +44,8 @@ def train(Xo, Xk, ys, device, enc_len=63):
 
     model = TFTModel(
         n_obs=n_obs, n_known=n_known, n_static=0,
-        d=64, n_heads=1, n_lstm_layers=1,
-        dropout=0.3, encoder_len=enc_len,
+        d=64, n_heads=1, n_lstm_layers=2,
+        dropout=0.1, encoder_len=enc_len,
     ).to(device)
 
     opt = torch.optim.Adam(model.parameters(), lr=LR)
