@@ -38,8 +38,6 @@ The target variable is 22-day rolling realized volatility of log USD/INR returns
 | HAR-RV-X | 0.003484 | 0.001982 | 0.002262 |
 | Random Forest | 0.009364 | 0.004084 | 0.010747 |
 | XGBoost | 0.006806 | 0.002752 | 0.005316 |
-| LSTM | — | — | — |
-| TFT | — | — | — |
 
 QLIKE is the primary metric (standard for realized volatility evaluation). HAR-RV is the benchmark everything else is compared against.
 
@@ -80,17 +78,16 @@ MBFM_project/
 │   ├── shap/                   SHAP values and feature names
 │   └── tft/                    TFT attention weights and variable selection weights
 ├── models/
-│   ├── Baselines/              GARCH family + HAR-RV scripts
 │   ├── random_forest.py
 │   ├── xgbs.py
 │   └── lstm/
 │       ├── lstm_model.py       architecture
 │       ├── lstm_train.py       training loop
-│       └── 08_lstm.py          walk-forward evaluation
+│       └── lstm_run.py          walk-forward evaluation
 │   └── tft/
 │       ├── tft_model.py        architecture
 │       ├── tft_train.py        training loop
-│       └── 09_tft.py           walk-forward evaluation
+│       └── tft.py           walk-forward evaluation
 ├── EDA/
 │   └── eda.py
 └── preprocessing/
