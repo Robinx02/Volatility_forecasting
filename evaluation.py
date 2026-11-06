@@ -114,9 +114,7 @@ for name, fc in forecasts.items():
         dm_s, dm_p = np.nan, np.nan
     else:
         dm_s, dm_p = dm_test(actual, fc, harv)
-    rows.append({"Model": name, "OOS_n": m.sum(),
-                 "RMSE": r_, "MAE": m_, "QLIKE": q_,
-                 "DM_stat": dm_s, "DM_pval": dm_p})
+    rows.append({"Model": name, "OOS_n": m.sum(), "RMSE": r_, "MAE": m_, "QLIKE": q_, "DM_stat": dm_s, "DM_pval": dm_p})
 
 t4 = pd.DataFrame(rows).set_index("Model")
 print("\n=== TABLE 4: Main OOS Accuracy ===")

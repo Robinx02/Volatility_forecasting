@@ -169,10 +169,10 @@ Beyond just comparing forecast accuracy, the project uses two tools to understan
 - [x] XGBoost + SHAP
 - [x] LSTM
 - [x] TFT
+- [x] Full evaluation (DM tests, regime split, Mincer-Zarnowitz)
+- [x] Interpretation figures
 
-These below are yet to be done 
+Robustness checks and paper write up is only left
 
-- [ ] Full evaluation (DM tests, regime split, Mincer-Zarnowitz)
-- [ ] Interpretation figures
 - [ ] Robustness checks
 - [ ] Paper write-up
