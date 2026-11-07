@@ -55,7 +55,7 @@ for i, t in enumerate(range(TRAIN, len(y))):
         b = np.linalg.lstsq(X_, y[:t], rcond=None)[0]
         wait = 0
     xf = np.array([1, df["rv_lag1"].iloc[t], df["rv_5d"].iloc[t], df["rv_22d"].iloc[t]])
-    fcast[i] = max(float(xf @ b), 1e-8)
+    fcast[i] = max(float(xf @ b), rv_floor)
     wait += 1
 results["HAR-RV"] = fcast
 
