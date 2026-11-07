@@ -9,15 +9,15 @@ os.makedirs(RESDIR, exist_ok=True)
 
 TRAIN = 1500
 MODELS = {
-    "GARCH(1,1)"   : "garch11.npy",
-    "EGARCH"       : "egarch.npy",
-    "GJR-GARCH"    : "gjr_garch.npy",
-    "HAR-RV"       : "har_rv.npy",
-    "HAR-RV-X"     : "har_rv_x.npy",
+    "GARCH(1,1)" : "garch11.npy",
+    "EGARCH" : "egarch.npy",
+    "GJR-GARCH" : "gjr_garch.npy",
+    "HAR-RV" : "har_rv.npy",
+    "HAR-RV-X" : "har_rv_x.npy",
     "Random Forest": "random_forest.npy",
-    "XGBoost"      : "xgboost.npy",
-    "LSTM"         : "lstm.npy",
-    "TFT"          : "tft.npy",
+    "XGBoost" : "xgboost.npy",
+    "LSTM" : "lstm.npy",
+    "TFT" : "tft.npy",
 }
 
 df = pd.read_csv(DATA, index_col=0, parse_dates=True)
