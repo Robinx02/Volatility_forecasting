@@ -18,7 +18,7 @@ TRAIN = 1500
 REFIT = 252
 OOS   = len(df) - TRAIN
 
-fcast    = np.full(OOS, np.nan)
+fcast = np.full(OOS, np.nan)
 res_harx = None
 
 for i, t in enumerate(range(TRAIN, len(df))):
@@ -26,9 +26,7 @@ for i, t in enumerate(range(TRAIN, len(df))):
         start = 22
         y = rv[start:t]
         X = sm.add_constant(
-            np.column_stack([rv_d[start:t], rv_w[start:t],
-                             rv_m[start:t], vix[start:t]])
-        )
+            np.column_stack([rv_d[start:t], rv_w[start:t],rv_m[start:t], vix[start:t]]))
         try:
             res_harx = sm.OLS(y, X).fit()
         except Exception as e:
@@ -69,3 +67,6 @@ print(f"  MAE    : {mae:.6f}")
 print(f"  QLIKE  : {qlike:.6f}")
 print(f"  Saved  : {out}")
 print("=" * 45)
+
+param_df.to_csv(os.path.join(FCAST, "..", "har_rv_x_params.csv"))
+print(f"R²: {res_harx.rsquared:.4f}  Adj-R²: {res_harx.rsquared_adj:.4f}")

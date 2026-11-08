@@ -24,9 +24,7 @@ for i, t in enumerate(range(TRAIN, len(df))):
     if i == 0 or i % REFIT == 0:
         start = 22
         y = rv[start:t]
-        X = sm.add_constant(
-            np.column_stack([rv_d[start:t], rv_w[start:t], rv_m[start:t]])
-        )
+        X = sm.add_constant(np.column_stack([rv_d[start:t], rv_w[start:t], rv_m[start:t]]))
         try:
             res_har = sm.OLS(y, X).fit()
         except Exception as e:
@@ -34,7 +32,7 @@ for i, t in enumerate(range(TRAIN, len(df))):
 
     if res_har is not None:
         try:
-            x_new    = np.array([[1, rv_d[t], rv_w[t], rv_m[t]]])
+            x_new = np.array([[1, rv_d[t], rv_w[t], rv_m[t]]])
             fcast[i] = float(res_har.predict(x_new)[0])
         except Exception as e:
             print(f"  predict failed at i={i}: {e}")
@@ -67,3 +65,6 @@ print(f"  MAE    : {mae:.6f}")
 print(f"  QLIKE  : {qlike:.6f}")
 print(f"  Saved  : {out}")
 print("=" * 45)
+
+param_df.to_csv(os.path.join(FCAST, "..", "har_rv_params.csv"))
+print(f"R²: {res_har.rsquared:.4f}  Adj-R²: {res_har.rsquared_adj:.4f}")

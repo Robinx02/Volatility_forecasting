@@ -22,9 +22,7 @@ res   = None
 for i, t in enumerate(range(TRAIN, len(df))):
     if i == 0 or i % REFIT == 0:
         try:
-            res = arch_model(
-                ret[:t], vol="EGARCH", p=1, q=1, dist="normal"
-            ).fit(disp="off", show_warning=False)
+            res = arch_model(ret[:t], vol="EGARCH", p=1, q=1, dist="normal").fit(disp="off", show_warning=False)
         except Exception as e:
             print(f"  fit failed at i={i}: {e}")
     if res is not None:
@@ -53,3 +51,16 @@ print(f"  MAE    : {mae:.6f}")
 print(f"  QLIKE  : {qlike:.6f}")
 print(f"  Saved  : {out}")
 print("=" * 45)
+
+if res is not None:
+    param_df = pd.DataFrame({
+        "coef" : res.params,
+        "tstat": res.tvalues,
+        "pval" : res.pvalues,
+        "se"   : res.std_err,
+    })
+    param_df.to_csv(os.path.join(FCAST, "..", "egarch_params.csv"))
+    print("\nEGARCH(1,1) parameters:")
+    print(param_df.round(6).to_string())
+    print(f"Log-likelihood: {res.loglikelihood:.4f}")
+    print(f"AIC: {res.aic:.4f}  BIC: {res.bic:.4f}")
