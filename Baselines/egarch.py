@@ -3,22 +3,22 @@ import numpy as np
 import os
 from arch import arch_model
 
-
-DATA  = os.environ.get("MBFM_DATA",  r"D:\MBFM_project\master_features.csv")
+DATA = os.environ.get("MBFM_DATA",  r"D:\MBFM_project\master_features.csv")
 FCAST = os.environ.get("MBFM_FCAST", r"D:\MBFM_project\results\forecasts")
 os.makedirs(FCAST, exist_ok=True)
 
 df = pd.read_csv(DATA, index_col=0, parse_dates=True)
 rv = df["rv"].values
-ret = df["ret_t"].values * 100         
+ret = df["ret_t"].values * 100          # percent log returns
 
 TRAIN = 1500
 REFIT = 252
-OOS   = len(df) - TRAIN
+OOS = len(df) - TRAIN
 
-NAME = "EGARCH(1,1)"
+NAME = "EGARCH(1,1) with leverage"
 KEY  = "egarch"
-SPEC = dict(vol="EGARCH", p=1, q=1)                       # arch_model settings for this variant
+SPEC = dict(vol="EGARCH", p=1, o=1, q=1) 
+
 
 full_model = arch_model(ret, dist="normal", **SPEC)
 
@@ -38,8 +38,8 @@ for i, t in enumerate(range(TRAIN, len(df))):
         except Exception as e:
             print(f"  fit failed at i={i}: {e}")
     if cond_vol is not None:
-        var_fc   = cond_vol[t] ** 2                       # (pct return)^2
-        fcast[i] = np.sqrt(var_fc / 10000) * np.sqrt(252) # annualised std, same scale as rv
+        var_fc   = cond_vol[t] ** 2   
+        fcast[i] = np.sqrt(var_fc / 10000) * np.sqrt(252) 
 
 n_distinct = len(np.unique(np.round(fcast[~np.isnan(fcast)], 10)))
 print(f"  distinct forecast values: {n_distinct}  (old fixed-forecast version: 15; should be about {OOS})")
@@ -64,11 +64,11 @@ qlike = np.mean(a / f - np.log(a / f) - 1)
 
 print("=" * 45)
 print(NAME)
-print(f"  OOS n  : {mask.sum()}")
-print(f"  RMSE   : {rmse:.6f}")
-print(f"  MAE    : {mae:.6f}")
-print(f"  QLIKE  : {qlike:.6f}")
-print(f"  Saved  : {out}")
+print(f" OOS n  : {mask.sum()}")
+print(f" RMSE   : {rmse:.6f}")
+print(f" MAE    : {mae:.6f}")
+print(f" QLIKE  : {qlike:.6f}")
+print(f" Saved  : {out}")
 print("=" * 45)
 
 if res is not None:

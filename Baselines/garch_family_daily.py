@@ -13,4 +13,4 @@ print("\n" + "=" * 60 + "\nSUMMARY: distinct forecast values per model (old = 15
 for k, old in OLD_QLIKE.items():
     f = np.load(os.path.join(FCAST, k + ".npy"))
     print(f"  {k:10s} distinct = {len(np.unique(np.round(f[~np.isnan(f)], 10))):5d}   old QLIKE = {old}")
-print("Send Claude: the three .npy files + the console output above.")
+print("done")
