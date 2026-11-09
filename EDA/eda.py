@@ -11,7 +11,8 @@ df = pd.read_csv(r"D:\MBFM_project\master_features.csv", index_col="date", parse
 out = r"D:\MBFM_project\figures"
 import os; os.makedirs(out, exist_ok=True)
 
-# ── Crisis annotations ─────────────────────────────────────────────────────
+#these are the crisis annotations
+
 crises = {
     "GFC\n2008":      "2008-09-15",
     "Euro\n2011":     "2011-08-01",
@@ -23,9 +24,9 @@ crises = {
     "RU-UA\n2022":    "2022-02-24",
 }
 
-# ══════════════════════════════════════════════════════════════════════════
+
 # FIG 1 — RV time series with crisis annotations
-# ══════════════════════════════════════════════════════════════════════════
+
 fig, ax = plt.subplots(figsize=(14, 4))
 ax.plot(df.index, df["rv"], lw=0.8, color="#2c7bb6", label="Realised Volatility")
 ax.fill_between(df.index, df["rv"], alpha=0.15, color="#2c7bb6")
@@ -34,9 +35,7 @@ for label, dt in crises.items():
     x = pd.Timestamp(dt)
     if x in df.index or (x > df.index.min() and x < df.index.max()):
         ax.axvline(x, color="crimson", lw=0.8, ls="--", alpha=0.7)
-        ax.text(x, df["rv"].max() * 0.97, label, fontsize=6.5,
-                ha="center", va="top", color="crimson",
-                bbox=dict(fc="white", ec="none", alpha=0.6, pad=1))
+        ax.text(x, df["rv"].max() * 0.97, label, fontsize=6.5, ha="center", va="top", color="crimson",bbox=dict(fc="white", ec="none", alpha=0.6, pad=1))
 
 ax.set_ylabel("Annualised RV")
 ax.set_xlabel("")
@@ -50,9 +49,8 @@ plt.savefig(f"{out}/fig1_rv_series.png", dpi=200)
 plt.show()
 print("Fig 1 saved")
 
-# ══════════════════════════════════════════════════════════════════════════
 # FIG 2 — ACF of RV to 60 lags
-# ══════════════════════════════════════════════════════════════════════════
+
 fig, ax = plt.subplots(figsize=(10, 3.5))
 plot_acf(df["rv"], lags=60, ax=ax, color="#2c7bb6", vlines_kwargs={"lw": 1.2})
 ax.set_title("ACF of Realised Volatility (lags 0–60)")
@@ -63,12 +61,9 @@ plt.savefig(f"{out}/fig2_rv_acf.png", dpi=200)
 plt.show()
 print("Fig 2 saved")
 
-# ══════════════════════════════════════════════════════════════════════════
 # TABLE 1 — Descriptive statistics
-# ══════════════════════════════════════════════════════════════════════════
-desc_cols = ["rv", "rv_lag1", "vix_level", "brent_ret", "dxy_level",
-             "india10y", "us10y", "rate_spread", "callmoney",
-             "nifty_ret", "em_ret", "ret_t"]
+
+desc_cols = ["rv", "rv_lag1", "vix_level", "brent_ret", "dxy_level", "india10y", "us10y", "rate_spread", "callmoney", "nifty_ret", "em_ret", "ret_t"]
 
 desc = df[desc_cols].describe().T[["count", "mean", "std", "min", "25%", "50%", "75%", "max"]]
 desc["skew"] = df[desc_cols].skew()
@@ -79,13 +74,10 @@ print(desc.to_string())
 desc.to_csv(f"{out}/table1_descriptives.csv")
 print("Table 1 saved")
 
-# ══════════════════════════════════════════════════════════════════════════
+
 # FIG 3 — Correlation heatmap (ML features only)
-# ══════════════════════════════════════════════════════════════════════════
-ml_features = ["rv_lag1", "rv_5d", "rv_22d", "sq_return",
-               "vix_level", "vix_chg", "brent_ret", "dxy_level", "dxy_ret",
-               "india10y", "india10y_chg", "us10y", "us10y_chg",
-               "rate_spread", "callmoney", "nifty_ret", "em_ret"]
+
+ml_features = ["rv_lag1", "rv_5d", "rv_22d", "sq_return", "vix_level", "vix_chg", "brent_ret", "dxy_level", "dxy_ret", "india10y", "india10y_chg", "us10y", "us10y_chg", "rate_spread", "callmoney", "nifty_ret", "em_ret"]
 
 corr = df[ml_features].corr()
 
@@ -106,9 +98,9 @@ plt.savefig(f"{out}/fig3_corr_heatmap.png", dpi=200)
 plt.show()
 print("Fig 3 saved")
 
-# ══════════════════════════════════════════════════════════════════════════
+
 # FIG 4 — Rolling 252-day correlation of RV with key features
-# ══════════════════════════════════════════════════════════════════════════
+
 roll_features = ["vix_level", "dxy_ret", "brent_ret", "nifty_ret", "em_ret", "rate_spread"]
 colors = ["#e41a1c","#377eb8","#4daf4a","#984ea3","#ff7f00","#a65628"]
 
@@ -129,9 +121,8 @@ plt.savefig(f"{out}/fig4_rolling_corr.png", dpi=200)
 plt.show()
 print("Fig 4 saved")
 
-# ══════════════════════════════════════════════════════════════════════════
 # FIG 5 — RV distribution: full vs high-vol regime (>75th pct)
-# ══════════════════════════════════════════════════════════════════════════
+
 q75 = df["rv"].quantile(0.75)
 rv_low  = df.loc[df["rv"] <= q75, "rv"]
 rv_high = df.loc[df["rv"] >  q75, "rv"]

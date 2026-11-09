@@ -4,15 +4,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 df = pd.read_csv(r"D:\MBFM_project\master_features.csv", index_col="date", parse_dates=True)
 
-FEATURES = [
-    "rv_lag1","rv_5d","rv_22d","sq_return",
-    "vix_level","vix_chg","brent_ret",
-    "dxy_level","dxy_ret",
-    "india10y","india10y_chg",
-    "us10y","us10y_chg","rate_spread",
-    "callmoney","nifty_ret","em_ret",
-    "is_mpc_day","is_fomc_day"
-]
+FEATURES = ["rv_lag1","rv_5d","rv_22d","sq_return", "vix_level","vix_chg","brent_ret","dxy_level","dxy_ret","india10y","india10y_chg", "us10y","us10y_chg","rate_spread","callmoney","nifty_ret","em_ret","is_mpc_day","is_fomc_day"]
 TARGET = "rv"
 TRAIN_SIZE = 1500
 REFIT_EVERY = 252
@@ -28,10 +20,7 @@ model = None
 
 for t in range(TRAIN_SIZE, len(y)):
     if model is None or steps_since_refit >= REFIT_EVERY:
-        model = RandomForestRegressor(
-            n_estimators=200, max_features="sqrt",
-            min_samples_leaf=5, random_state=42, n_jobs=-1
-        )
+        model = RandomForestRegressor(n_estimators=200, max_features="sqrt",min_samples_leaf=5, random_state=42, n_jobs=-1)
         model.fit(X[:t], y[:t])
         steps_since_refit = 0
     forecasts[t] = model.predict(X[t:t+1])[0]

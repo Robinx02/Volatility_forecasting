@@ -42,12 +42,7 @@ def train(Xo, Xk, ys, device, enc_len=63):
     n_obs   = Xo.shape[2]
     n_known = Xk.shape[2]
 
-    model = TFTModel(
-        n_obs=n_obs, n_known=n_known, n_static=0,
-        d=64, n_heads=1, n_lstm_layers=2,
-        dropout=0.1, encoder_len=enc_len,
-    ).to(device)
-
+    model = TFTModel( n_obs=n_obs, n_known=n_known, n_static=0, d=64, n_heads=1, n_lstm_layers=2,dropout=0.1, encoder_len=enc_len,).to(device)
     opt = torch.optim.Adam(model.parameters(), lr=LR)
 
     val_size = min(252, len(ys) // 5)

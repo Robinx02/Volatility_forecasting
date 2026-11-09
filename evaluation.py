@@ -184,7 +184,7 @@ plt.tight_layout()
 plt.savefig(os.path.join(FIGDIR, "fig6_forecast_comparison.png"), dpi=300)
 print("\nSaved fig6_forecast_comparison.png")
 
-# FIGURE: regime split bar chart
+# FIGURE: regime split bar chart and this is figure 7
 
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 model_names = list(forecasts.keys())

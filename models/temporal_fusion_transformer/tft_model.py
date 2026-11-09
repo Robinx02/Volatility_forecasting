@@ -80,8 +80,7 @@ class InterpretableAttention(nn.Module):
 
 
 class TFTModel(nn.Module):
-    def __init__(self, n_obs, n_known, n_static, d=64, n_heads=1,
-                 n_lstm_layers=1, dropout=0.3, encoder_len=63):
+    def __init__(self, n_obs, n_known, n_static, d=64, n_heads=1, n_lstm_layers=1, dropout=0.3, encoder_len=63):
         super().__init__()
         self.d           = d
         self.n_obs       = n_obs
@@ -94,8 +93,7 @@ class TFTModel(nn.Module):
         self.obs_sel   = VarSelNet(n_obs,   d, d_context=d, dropout=dropout)
         self.known_sel = VarSelNet(n_known, d, d_context=d, dropout=dropout)
 
-        self.lstm      = nn.LSTM(d, d, num_layers=n_lstm_layers, batch_first=True,
-                                 dropout=dropout if n_lstm_layers > 1 else 0.0)
+        self.lstm      = nn.LSTM(d, d, num_layers=n_lstm_layers, batch_first=True, dropout=dropout if n_lstm_layers > 1 else 0.0)
         self.lstm_gate = nn.Linear(d, d * 2)
         self.lstm_norm = nn.LayerNorm(d)
 
@@ -148,23 +146,21 @@ class TFTModel(nn.Module):
         c0 = cc.unsqueeze(0).expand(self.lstm.num_layers, -1, -1).contiguous()
 
         enc_out, (hn, cn) = self.lstm(obs_sel, (h0, c0))
-        dec_out, _        = self.lstm(kn_sel,  (hn, cn))
+        dec_out, _ = self.lstm(kn_sel,  (hn, cn))
         lstm_out = torch.cat([enc_out, dec_out], dim=1)
 
         combined = torch.cat([obs_sel, kn_sel], dim=1)
-        phi      = self.lstm_norm(combined + self._glu(lstm_out, self.lstm_gate))
+        phi = self.lstm_norm(combined + self._glu(lstm_out, self.lstm_gate))
 
         theta = self.enrich_grn(phi, ce.unsqueeze(1).expand(-1, phi.size(1), -1))
 
         T_total = theta.size(1)
-        mask    = torch.triu(
-            torch.ones(T_total, T_total, device=obs.device), diagonal=1
-        ).bool().unsqueeze(0).expand(B, -1, -1)
+        mask = torch.triu( torch.ones(T_total, T_total, device=obs.device), diagonal=1 ).bool().unsqueeze(0).expand(B, -1, -1)
 
         beta, attn_weights = self.attn(theta, theta, theta, mask)
         delta = self.attn_norm(theta + self._glu(beta, self.attn_gate))
 
-        psi     = self.pw_grn(delta)
+        psi = self.pw_grn(delta)
         psi_hat = self.pw_norm(phi + self._glu(psi, self.pw_gate))
 
         last = self.drop(psi_hat[:, -1])

@@ -14,3 +14,4 @@ for k, old in OLD_QLIKE.items():
     f = np.load(os.path.join(FCAST, k + ".npy"))
     print(f"  {k:10s} distinct = {len(np.unique(np.round(f[~np.isnan(f)], 10))):5d}   old QLIKE = {old}")
 print("done")
+

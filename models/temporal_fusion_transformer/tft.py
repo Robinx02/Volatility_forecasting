@@ -64,7 +64,7 @@ for i, t in enumerate(range(TRAIN, len(df))):
     if model is None:
         continue
 
-    # build input: encoder = [t-ENC_LEN : t], decoder step = [t]
+    
     xo_in = scaler_obs.transform(X_obs[t - ENC_LEN : t])
     xk_in = scaler_known.transform(X_known[t - ENC_LEN : t + 1])
 
@@ -76,9 +76,9 @@ for i, t in enumerate(range(TRAIN, len(df))):
 
     fcast[i] = max(p50.item(), 1e-8)
 
-    # store last attention row (forecast position) and variable weights
-    attn_store.append(attn[0, -1].cpu().numpy())    # (ENC_LEN+1,)
-    varw_store.append(var_w[0].cpu().numpy())        # (n_obs,)
+    
+    attn_store.append(attn[0, -1].cpu().numpy())   
+    varw_store.append(var_w[0].cpu().numpy())     
 
 out = os.path.join(FCAST, "tft.npy")
 np.save(out, fcast)
@@ -106,7 +106,7 @@ print(f"  saved  : {out}")
 
 oos_dates = df.index[TRAIN:]
 
-# figure 1 is the forecast vs actual and error
+# figure 15 is the forecast vs actual and error
 fig, axes = plt.subplots(1, 2, figsize=(14, 4))
 axes[0].plot(oos_dates, actual, color="black", lw=0.8, label="actual rv")
 axes[0].plot(oos_dates, fcast,  color="steelblue", lw=0.7, alpha=0.8, label="tft p50")
@@ -123,7 +123,7 @@ plt.savefig(r"D:\MBFM_project\figures\fig_tft_forecast.png", dpi=150)
 plt.close()
 print("saved fig_tft_forecast.png")
 
-# figure 2 is the mean temporal attention vs lag
+# figure 14 is the mean temporal attention vs lag
 attn_arr  = np.array(attn_store, dtype=np.float32)   # (OOS, T_total)
 T_attn    = attn_arr.shape[1]
 mean_attn = attn_arr.mean(axis=0)
@@ -146,7 +146,7 @@ plt.close()
 print("saved fig_tft_attention.png")
 
 
-#figure 3 is the mean variable selection weights bar
+#figure 12 is the mean variable selection weights bar
 
 varw_arr  = np.array(varw_store, dtype=np.float32)  # (OOS, n_obs)
 mean_varw = varw_arr.mean(axis=0)

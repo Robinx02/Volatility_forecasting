@@ -98,6 +98,8 @@ axes[1].set_title("Absolute Forecast Error")
 axes[1].set_ylabel("|forecast - actual")
 axes[1].grid(alpha=0.3)
 
+#this is figure 16
+
 plt.tight_layout()
 out_fig = r"D:\MBFM_project\figures\fig_lstm_forecast.png"
 plt.savefig(out_fig , dpi = 150)

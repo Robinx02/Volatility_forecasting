@@ -7,15 +7,7 @@ import os
 
 df = pd.read_csv(r"D:\MBFM_project\master_features.csv", index_col="date", parse_dates=True)
 
-FEATURES = [
-    "rv_lag1","rv_5d","rv_22d","sq_return",
-    "vix_level","vix_chg","brent_ret",
-    "dxy_level","dxy_ret",
-    "india10y","india10y_chg",
-    "us10y","us10y_chg","rate_spread",
-    "callmoney","nifty_ret","em_ret",
-    "is_mpc_day","is_fomc_day"
-]
+FEATURES = [ "rv_lag1","rv_5d","rv_22d","sq_return","vix_level","vix_chg","brent_ret", "dxy_level","dxy_ret", "india10y","india10y_chg","us10y","us10y_chg","rate_spread", "callmoney","nifty_ret","em_ret", "is_mpc_day","is_fomc_day"]
 TARGET = "rv"
 TRAIN_SIZE = 1500
 REFIT_EVERY = 252
@@ -30,11 +22,7 @@ model = None
 
 for t in range(TRAIN_SIZE, len(y)):
     if model is None or steps_since_refit >= REFIT_EVERY:
-        model = xgb.XGBRegressor(
-            n_estimators=300, max_depth=4, learning_rate=0.05,
-            subsample=0.8, colsample_bytree=0.8, min_child_weight=5,
-            random_state=42, n_jobs=-1, verbosity=0
-        )
+        model = xgb.XGBRegressor(n_estimators=300, max_depth=4, learning_rate=0.05,subsample=0.8, colsample_bytree=0.8, min_child_weight=5,random_state=42, n_jobs=-1, verbosity=0)
         model.fit(X[:t], y[:t])
         steps_since_refit = 0
     forecasts[t] = model.predict(X[t:t+1])[0]
@@ -49,13 +37,9 @@ print(f"{'XGBoost':<15} {oos.sum():>6}  {rmse:>10.6f}  {mae:>10.6f}  {qlike:>10.
 
 np.save(r"D:\MBFM_project\results\forecasts\xgboost.npy", forecasts)
 
-# ── SHAP ────────────────────────────────────────────────────────────────────
+
 # Refit final model on full data for SHAP (representative of last window)
-final_model = xgb.XGBRegressor(
-    n_estimators=300, max_depth=4, learning_rate=0.05,
-    subsample=0.8, colsample_bytree=0.8, min_child_weight=5,
-    random_state=42, n_jobs=-1, verbosity=0
-)
+final_model = xgb.XGBRegressor(n_estimators=300, max_depth=4, learning_rate=0.05,subsample=0.8, colsample_bytree=0.8, min_child_weight=5,random_state=42, n_jobs=-1, verbosity=0)
 final_model.fit(X[:TRAIN_SIZE + (((len(y) - TRAIN_SIZE) // REFIT_EVERY)) * REFIT_EVERY], 
                 y[:TRAIN_SIZE + (((len(y) - TRAIN_SIZE) // REFIT_EVERY)) * REFIT_EVERY])
 
@@ -74,7 +58,7 @@ lo_mask  = ~hi_mask
 vix_idx  = FEATURES.index("vix_level")
 oos_dates = dates[oos]
 
-# Fig: mean |SHAP| bar
+# Fig: mean |SHAP| bar and this is figure 8
 mean_abs = np.abs(shap_vals).mean(axis=0)
 order = np.argsort(mean_abs)[::-1]
 fig, ax = plt.subplots(figsize=(8, 5))
@@ -85,7 +69,7 @@ plt.tight_layout()
 plt.savefig(r"D:\MBFM_project\figures\fig_shap_bar.png", dpi=150)
 plt.close()
 
-# Fig: VIX SHAP time series vs rv
+# Fig: VIX SHAP time series vs rv and this is figure 9
 fig, ax1 = plt.subplots(figsize=(12, 4))
 ax2 = ax1.twinx()
 ax1.plot(oos_dates, shap_vals[:, vix_idx], color="steelblue", lw=0.8, label="VIX SHAP")
@@ -97,7 +81,7 @@ plt.tight_layout()
 plt.savefig(r"D:\MBFM_project\figures\fig_shap_vix_ts.png", dpi=150)
 plt.close()
 
-# Fig: VIX dependence plot
+# Fig: VIX dependence plot  and it is the figure 10
 fig, ax = plt.subplots(figsize=(6, 5))
 sc = ax.scatter(X_oos[:, vix_idx], shap_vals[:, vix_idx],
                 c=rv_oos, cmap="RdYlGn_r", s=4, alpha=0.6)
@@ -108,7 +92,7 @@ plt.tight_layout()
 plt.savefig(r"D:\MBFM_project\figures\fig_shap_vix_dep.png", dpi=150)
 plt.close()
 
-# Fig: SHAP regime comparison
+# Fig: SHAP regime comparison it is the figure 11
 mean_hi = np.abs(shap_vals[hi_mask]).mean(axis=0)
 mean_lo = np.abs(shap_vals[lo_mask]).mean(axis=0)
 order2 = np.argsort(mean_hi)[::-1]
